@@ -1,0 +1,19 @@
+{
+  "name": "download-s3-bucket",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.779.0",
+    "archiver": "^7.0.1",
+    "dotenv": "^16.4.7",
+    "fs-extra": "^11.3.0"
+  }
+}
