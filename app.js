@@ -4,14 +4,13 @@ import path from "path";
 import os from "os";
 import { promisify } from "util";
 import archiver from "archiver";
-
-require('dotenv').config();
+import "dotenv/config";
 
 // AWS S3 Configuration
-const BUCKET_NAME = "safe-accountants";
+const BUCKET_NAME = "your-bucket-name";
 const REGION = process.env.AWS_REGION;
-const DOWNLOAD_PATH = path.join(os.homedir(), "Downloads", "s3-bucket");
-const ZIP_FILE_PATH = path.join(os.homedir(), "Downloads", "s3-bucket.zip");
+const DOWNLOAD_PATH = path.join(os.homedir(), "Downloads", "s3-bucket"); // Mac's Downloads folder
+const ZIP_FILE_PATH = path.join(os.homedir(), "Downloads", "s3-bucket.zip"); // Final ZIP file location
 
 // Initialize S3 Client
 const s3 = new S3Client({
