@@ -5,9 +5,9 @@ import os from "os";
 import { promisify } from "util";
 import archiver from "archiver";
 import "dotenv/config";
+import readline from "readline";
 
 // AWS S3 Configuration
-const BUCKET_NAME = "your-bucket-name";
 const REGION = process.env.AWS_REGION;
 const DOWNLOAD_PATH = path.join(os.homedir(), "Downloads", "s3-bucket"); // Mac's Downloads folder
 const ZIP_FILE_PATH = path.join(os.homedir(), "Downloads", "s3-bucket.zip"); // Final ZIP file location
@@ -21,30 +21,43 @@ const s3 = new S3Client({
     }
 });
 
+const askBucketName = () => {
+    return new Promise((resolve) => {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        rl.question("Enter S3 Bucket Name: ", (bucketName) => {
+            rl.close();
+            resolve(bucketName.trim());
+        });
+    });
+};
+
 // Helper function to download an S3 object to a local file
-const downloadFile = async (fileKey, filePath) => {
+const downloadFile = async (bucketName, fileKey, filePath) => {
     if (fileKey.endsWith("/")) {
-        // If it's a directory (S3 prefix), just create it locally
         fs.mkdirSync(filePath, { recursive: true });
         return;
     }
 
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
-    const getObjectParams = { Bucket: BUCKET_NAME, Key: fileKey };
+    const getObjectParams = { Bucket: bucketName, Key: fileKey };
     const { Body } = await s3.send(new GetObjectCommand(getObjectParams));
 
     return promisify(fs.writeFile)(filePath, await Body.transformToByteArray());
 };
 
 // Function to list and download all objects from the bucket
-const downloadBucket = async () => {
+const downloadBucket = async (bucketName) => {
     let continuationToken = null;
     let downloadedFiles = [];
 
-    console.log("Starting download...");
+    console.log(`Starting download from ${bucketName}...`);
     do {
-        const listParams = { Bucket: BUCKET_NAME, ContinuationToken: continuationToken };
+        const listParams = { Bucket: bucketName, ContinuationToken: continuationToken };
         const data = await s3.send(new ListObjectsV2Command(listParams));
         if (!data.Contents) {
             console.log("No files found in the bucket.");
@@ -53,8 +66,8 @@ const downloadBucket = async () => {
 
         for (const file of data.Contents) {
             const filePath = path.join(DOWNLOAD_PATH, file.Key);
-            await downloadFile(file.Key, filePath);
-            if (!file.Key.endsWith("/")) downloadedFiles.push(filePath); // Only add files, not directories
+            await downloadFile(bucketName, file.Key, filePath);
+            if (!file.Key.endsWith("/")) downloadedFiles.push(filePath);
             console.log(`Downloaded: ${file.Key}`);
         }
 
@@ -81,7 +94,8 @@ const zipFiles = async (files) => {
 // Main function to download, zip, and cleanup
 const main = async () => {
     try {
-        const files = await downloadBucket();
+        const BUCKET_NAME = await askBucketName();
+        const files = await downloadBucket(BUCKET_NAME);
         if (files.length > 0) {
             await zipFiles(files);
             console.log("Process complete!");
