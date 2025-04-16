@@ -21,7 +21,7 @@ AWS_REGION=
 
 ### 3. Start Downloading
 
-Run below command to start the downloading.
+Run the below command to start the downloading.
 
 ```npm run start```
 
