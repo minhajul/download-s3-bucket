@@ -14,7 +14,6 @@ const CONFIG = {
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     DOWNLOAD_PATH: process.env.DOWNLOAD_PATH || path.join(os.homedir(), "Downloads", "s3-bucket"),
     ZIP_FILE_PATH: process.env.ZIP_FILE_PATH || path.join(os.homedir(), "Downloads", "s3-bucket.zip"),
-    LOG_FILE_PATH: process.env.LOG_FILE_PATH || path.join(os.homedir(), "Downloads", "s3-bucket.log"),
     CONCURRENCY_LIMIT: parseInt(process.env.CONCURRENCY_LIMIT, 10) || 10,
     MAX_RETRIES: parseInt(process.env.MAX_RETRIES, 10) || 3,
     RETRY_DELAY_MS: parseInt(process.env.RETRY_DELAY_MS, 10) || 1000,
@@ -29,7 +28,7 @@ const logger = pino({
                   { target: "pino-pretty", options: { colorize: true }, level: "info" },
               ],
           },
-}, pino.destination(CONFIG.LOG_FILE_PATH));
+});
 
 const validateEnv = () => {
     const required = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"];
