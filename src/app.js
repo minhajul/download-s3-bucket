@@ -1,4 +1,4 @@
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import {S3Client, ListObjectsV2Command, GetObjectCommand} from "@aws-sdk/client-s3";
 import path from "path";
 import os from "os";
 import archiver from "archiver";
@@ -24,10 +24,10 @@ const logger = pino({
     transport: process.env.NODE_ENV === "production"
         ? undefined
         : {
-              targets: [
-                  { target: "pino-pretty", options: { colorize: true }, level: "info" },
-              ],
-          },
+            targets: [
+                {target: "pino-pretty", options: {colorize: true}, level: "info"},
+            ],
+        },
 });
 
 const validateEnv = () => {
@@ -84,7 +84,7 @@ const retryWithBackoff = async (fn, retries = CONFIG.MAX_RETRIES, delay = CONFIG
                 throw error;
             }
             const backoffDelay = delay * Math.pow(2, attempt - 1);
-            logger.warn({ attempt, nextDelay: backoffDelay, error: error.message }, "Retrying after failure");
+            logger.warn({attempt, nextDelay: backoffDelay, error: error.message}, "Retrying after failure");
             await sleep(backoffDelay);
         }
     }
@@ -96,23 +96,23 @@ const downloadFile = async (bucketName, fileKey) => {
     // Handle directory markers (keys ending with /)
     if (fileKey.endsWith("/")) {
         await fse.ensureDir(filePath);
-        return { success: true, fileKey };
+        return {success: true, fileKey};
     }
 
     await fse.ensureDir(path.dirname(filePath));
 
     const downloadFn = async () => {
-        const getObjectParams = { Bucket: bucketName, Key: fileKey };
-        const { Body } = await s3.send(new GetObjectCommand(getObjectParams));
+        const getObjectParams = {Bucket: bucketName, Key: fileKey};
+        const {Body} = await s3.send(new GetObjectCommand(getObjectParams));
         const buffer = await Body.transformToByteArray();
         await fse.writeFile(filePath, Buffer.from(buffer));
     };
 
     try {
         await retryWithBackoff(downloadFn);
-        return { success: true, fileKey, filePath };
+        return {success: true, fileKey, filePath};
     } catch (error) {
-        return { success: false, fileKey, error: error.message };
+        return {success: false, fileKey, error: error.message};
     }
 };
 
@@ -123,33 +123,29 @@ const downloadBucket = async (bucketName) => {
     let totalFiles = 0;
     let processedFiles = 0;
 
-    logger.info({ bucket: bucketName }, "Starting download");
+    logger.info({bucket: bucketName}, "Starting download");
 
-    // Single pass: list and download with progress
     do {
-        const listParams = { Bucket: bucketName, ContinuationToken: continuationToken };
+        const listParams = {Bucket: bucketName, ContinuationToken: continuationToken};
         const data = await s3.send(new ListObjectsV2Command(listParams));
 
         if (!data.Contents || data.Contents.length === 0) {
             if (!continuationToken) {
                 logger.warn("No files found in the bucket");
-                return { downloaded: [], failed: [] };
+                return {downloaded: [], failed: []};
             }
             break;
         }
 
-        // Filter out directory markers for counting
         const files = data.Contents.filter((f) => !f.Key.endsWith("/"));
         totalFiles += files.length;
 
-        // Also create directories for folder keys
         const folders = data.Contents.filter((f) => f.Key.endsWith("/"));
         for (const folder of folders) {
             const folderPath = path.join(CONFIG.DOWNLOAD_PATH, folder.Key);
             await fse.ensureDir(folderPath);
         }
 
-        // Download files with concurrency control
         const limit = pLimit(CONFIG.CONCURRENCY_LIMIT);
         const downloadPromises = files.map((file) =>
             limit(async () => {
@@ -158,13 +154,16 @@ const downloadBucket = async (bucketName) => {
 
                 if (result.success) {
                     downloadedFiles.push(result.filePath);
-                    logger.info({ progress: `${processedFiles}/${totalFiles}`, file: file.Key }, "Downloaded");
+                    logger.info({progress: `${processedFiles}/${totalFiles}`, file: file.Key}, "Downloaded");
                 } else {
-                    failedFiles.push({ fileKey: file.Key, error: result.error });
-                    logger.error({ progress: `${processedFiles}/${totalFiles}`, file: file.Key, error: result.error }, "Failed to download");
+                    failedFiles.push({fileKey: file.Key, error: result.error});
+                    logger.error({
+                        progress: `${processedFiles}/${totalFiles}`,
+                        file: file.Key,
+                        error: result.error
+                    }, "Failed to download");
                 }
 
-                // Print progress to console
                 process.stdout.write(`\r[${processedFiles}/${totalFiles}] Downloaded: ${downloadedFiles.length} | Failed: ${failedFiles.length}`);
             })
         );
@@ -174,26 +173,26 @@ const downloadBucket = async (bucketName) => {
     } while (continuationToken);
 
     console.log("\n"); // New line after progress
-    logger.info({ downloaded: downloadedFiles.length, failed: failedFiles.length }, "Download complete");
+    logger.info({downloaded: downloadedFiles.length, failed: failedFiles.length}, "Download complete");
 
-    return { downloaded: downloadedFiles, failed: failedFiles, total: totalFiles };
+    return {downloaded: downloadedFiles, failed: failedFiles, total: totalFiles};
 };
 
 const zipFiles = async () => {
-    logger.info({ path: CONFIG.DOWNLOAD_PATH, output: CONFIG.ZIP_FILE_PATH }, "Creating ZIP file");
+    logger.info({path: CONFIG.DOWNLOAD_PATH, output: CONFIG.ZIP_FILE_PATH}, "Creating ZIP file");
 
     return new Promise((resolve, reject) => {
         const output = fse.createWriteStream(CONFIG.ZIP_FILE_PATH);
-        const archive = archiver("zip", { zlib: { level: 9 } });
+        const archive = archiver("zip", {zlib: {level: 9}});
 
         output.on("close", () => {
             const sizeMB = (archive.pointer() / 1024 / 1024).toFixed(2);
-            logger.info({ size: `${sizeMB} MB`, path: CONFIG.ZIP_FILE_PATH }, "ZIP file created");
+            logger.info({size: `${sizeMB} MB`, path: CONFIG.ZIP_FILE_PATH}, "ZIP file created");
             resolve(CONFIG.ZIP_FILE_PATH);
         });
 
         archive.on("error", (err) => {
-            logger.error({ error: err.message }, "Archive error");
+            logger.error({error: err.message}, "Archive error");
             reject(err);
         });
 
@@ -207,12 +206,12 @@ const cleanupDownloadedFiles = async () => {
     try {
         const exists = await fse.pathExists(CONFIG.DOWNLOAD_PATH);
         if (exists) {
-            logger.info({ path: CONFIG.DOWNLOAD_PATH }, "Cleaning up downloaded files");
+            logger.info({path: CONFIG.DOWNLOAD_PATH}, "Cleaning up downloaded files");
             await fse.remove(CONFIG.DOWNLOAD_PATH);
             logger.info("Cleanup complete");
         }
     } catch (error) {
-        logger.warn({ error: error.message }, "Cleanup warning");
+        logger.warn({error: error.message}, "Cleanup warning");
     }
 };
 
@@ -221,26 +220,23 @@ const cleanupZipFile = async () => {
         const exists = await fse.pathExists(CONFIG.ZIP_FILE_PATH);
         if (exists) {
             await fse.remove(CONFIG.ZIP_FILE_PATH);
-            logger.info({ path: CONFIG.ZIP_FILE_PATH }, "Removed existing ZIP file");
+            logger.info({path: CONFIG.ZIP_FILE_PATH}, "Removed existing ZIP file");
         }
     } catch (error) {
-        logger.warn({ error: error.message }, "ZIP cleanup warning");
+        logger.warn({error: error.message}, "ZIP cleanup warning");
     }
 };
 
 const main = async () => {
     try {
-        logger.info("Application started");
-
         await cleanupZipFile();
         await cleanupDownloadedFiles();
 
         const bucketName = await askBucketName();
-        const { downloaded, failed, total } = await downloadBucket(bucketName);
+        const {downloaded, failed, total} = await downloadBucket(bucketName);
 
         if (total === 0) {
             logger.info("No files to process");
-            console.log("No files found in the bucket.");
             return;
         }
 
@@ -255,12 +251,13 @@ const main = async () => {
         if (failed.length > 0) {
             console.log("\nFailed files:");
             failed.forEach((f) => console.log(`  - ${f.fileKey}: ${f.error}`));
-            logger.warn({ failedCount: failed.length, files: failed.map(f => f.fileKey) }, "Some files failed to download");
+            logger.warn({
+                failedCount: failed.length,
+                files: failed.map(f => f.fileKey)
+            }, "Some files failed to download");
         }
-
-        logger.info("Application finished");
     } catch (error) {
-        logger.fatal({ error: error.message, stack: error.stack }, "Fatal error");
+        logger.fatal({error: error.message, stack: error.stack}, "Fatal error");
         console.error("Error:", error.message);
         process.exit(1);
     }
