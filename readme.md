@@ -2,7 +2,7 @@
 
 A simple node.js app to download s3 bucket data and make it zip.
 
-### 🚀 Quick Start
+### Quick Start
 
 Clone the project and follow the steps below to run the application.
 

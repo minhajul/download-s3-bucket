@@ -16,6 +16,11 @@
     "archiver": "^7.0.1",
     "dotenv": "^16.4.7",
     "fs-extra": "^11.3.0",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "p-limit": "^7.3.0",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
   }
 }
