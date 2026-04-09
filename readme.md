@@ -1,30 +1,65 @@
 ## Download S3 Bucket
 
-A simple node.js app to download s3 bucket data and make it zip.
+A Node.js CLI tool to download files from an S3 bucket, zip them, and clean up automatically.
+
+### Features
+
+- **Parallel Downloads** - Downloads multiple files concurrently for faster performance
+- **Retry with Backoff** - Automatically retries failed downloads (up to 3 attempts)
+- **Progress Tracking** - Real-time progress display during download
+- **Structured Logging** - Logs to both console and file for debugging
+- **Configurable** - Fully configurable via environment variables
 
 ### Quick Start
 
-Clone the project and follow the steps below to run the application.
-
-### 1. Install Dependencies
-```npm install```
-
-### 2. Configure AWS account
-
-Run this ```cp .env.example .env``` command to create a ```.env``` file with the example from ```.env.example```:
-
-```
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=
+#### 1. Install Dependencies
+```bash
+npm install
 ```
 
-### 3. Start Downloading
+#### 2. Configure AWS Account
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
 
-Run the below command to start the downloading.
+Edit `.env` with your AWS credentials:
+```
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=us-east-1
+```
 
-```npm run start```
+#### 3. Run
+```bash
+npm start
+```
 
-After starting the application, you'll be prompted to enter the bucket name. Once provided, the app will begin downloading files from that specified S3 bucket.
+Enter your S3 bucket name when prompted. The app will download all files, create a ZIP, and clean up the temporary files.
 
-### Made with ❤️ by [[minhajul](https://github.com/minhajul)]
+### Configuration
+
+All settings are optional. Defaults work out of the box.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AWS_ACCESS_KEY_ID` | (required) | AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | (required) | AWS secret key |
+| `AWS_REGION` | (required) | AWS region |
+| `DOWNLOAD_PATH` | ~/Downloads/s3-bucket | Download location |
+| `ZIP_FILE_PATH` | ~/Downloads/s3-bucket.zip | ZIP output path |
+| `LOG_FILE_PATH` | ~/Downloads/s3-bucket.log | Log file path |
+| `CONCURRENCY_LIMIT` | 10 | Max parallel downloads |
+| `MAX_RETRIES` | 3 | Retry attempts per file |
+| `RETRY_DELAY_MS` | 1000 | Base delay for retry backoff (ms) |
+| `LOG_LEVEL` | info | Logging level |
+
+### Output
+
+- Downloaded files: `~/Downloads/s3-bucket/`
+- ZIP file: `~/Downloads/s3-bucket.zip`
+- Log file: `~/Downloads/s3-bucket.log`
+
+After completion, downloaded files are automatically cleaned up, leaving only the ZIP.
+
+### Made with ❤️ by [minhajul](https://github.com/minhajul)
